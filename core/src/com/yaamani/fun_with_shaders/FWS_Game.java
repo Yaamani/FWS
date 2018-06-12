@@ -41,6 +41,7 @@ public class FWS_Game extends ApplicationAdapter implements InputProcessor {
 		Gdx.graphics.setWindowedMode((int) viewport.getWorldWidth(), (int) viewport.getWorldHeight());
 
 		behaviours = new Array<ShaderBehaviour>();
+        behaviours.add(new MouseGrayscale(viewport));
 
 		Gdx.input.setInputProcessor(this);
 	}
