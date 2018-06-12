@@ -2,27 +2,32 @@ package com.yaamani.fun_with_shaders;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-import com.badlogic.gdx.utils.viewport.ExtendViewport;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
-import com.badlogic.gdx.utils.viewport.Viewport;
+import com.yaamani.fun_with_shaders.ShaderBehaviours.MouseGrayscale;
+import com.yaamani.fun_with_shaders.ShaderBehaviours.ShaderBehaviour;
 
-public class FWS_Game extends ApplicationAdapter {
+import java.security.Key;
+
+public class FWS_Game extends ApplicationAdapter implements InputProcessor {
 	private int WORLD_SIZE = 1000;
-
 
 	SpriteBatch batch;
 
 	Texture img;
 	Texture depthMap;
 
-	ShaderProgram shaderProgram;
-
 	FitViewport viewport ;
-	
+
+	int currentBehaviour = 0;
+	Array<ShaderBehaviour> behaviours;
+
 	@Override
 	public void create () {
 		batch = new SpriteBatch();
@@ -30,15 +35,14 @@ public class FWS_Game extends ApplicationAdapter {
 //		initBuilding();
 //		initFairy();
 //		initFairy2();
-
 		img.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 
-		shaderProgram = new ShaderProgram(Gdx.files.internal("Shaders/default.vs.glsl"), Gdx.files.internal("Shaders/grayscaleMousePercentage.fs.glsl"));
-		if (!shaderProgram.isCompiled()) Gdx.app.error("Shader compile error", shaderProgram.getLog());
-
 		viewport = new FitViewport(WORLD_SIZE, (int) (WORLD_SIZE * getTextureAspectRatio(img)));
-
 		Gdx.graphics.setWindowedMode((int) viewport.getWorldWidth(), (int) viewport.getWorldHeight());
+
+		behaviours = new Array<ShaderBehaviour>();
+
+		Gdx.input.setInputProcessor(this);
 	}
 
 	@Override
@@ -54,13 +58,13 @@ public class FWS_Game extends ApplicationAdapter {
 
 		batch.begin();
 
-		//Gdx.gl20.glActiveTexture(GL);
 
         viewport.apply();
         batch.setProjectionMatrix(viewport.getCamera().combined);
-        batch.setShader(shaderProgram);
-        shaderProgram.setUniformf("u_percentage", Gdx.input.getX()/viewport.getWorldWidth());
-		// shaderProgram.setUniformi("u_depthMap", 1);
+
+        batch.setShader(behaviours.get(currentBehaviour).getShaderProgram());
+        behaviours.get(currentBehaviour).update();
+
 
 		batch.draw(img,
 				0,
@@ -76,6 +80,10 @@ public class FWS_Game extends ApplicationAdapter {
 	public void dispose () {
 		batch.dispose();
 		img.dispose();
+		depthMap.dispose();
+		for (ShaderBehaviour behaviour : behaviours) {
+			behaviour.dispose();
+		}
 	}
 
 
@@ -112,5 +120,68 @@ public class FWS_Game extends ApplicationAdapter {
 	private void initFairy2() {
 		img = new Texture("Pictures/Fairy2.jpg");
 		depthMap = new Texture("Depth Maps/Fairy.jpg");
+	}
+
+
+
+
+
+
+
+
+
+
+
+	@Override
+	public boolean keyDown(int keycode) {
+		behaviours.get(currentBehaviour).keyDown(keycode);
+		return false;
+	}
+
+	@Override
+	public boolean keyUp(int keycode) { //ShaderBehaviours can pretty much use any input method possible except pressing the SPACE key cuz it loops through the different behaviours.
+		if (keycode == Input.Keys.SPACE) {
+			if (currentBehaviour == behaviours.size-1) currentBehaviour = 0;
+			else currentBehaviour++;
+		} else {
+			behaviours.get(currentBehaviour).keyUp(keycode);
+		}
+		return false;
+	}
+
+	@Override
+	public boolean keyTyped(char character) {
+		behaviours.get(currentBehaviour).keyTyped(character);
+		return false;
+	}
+
+	@Override
+	public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+		behaviours.get(currentBehaviour).touchDown(screenX, screenY, pointer, button);
+		return false;
+	}
+
+	@Override
+	public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+		behaviours.get(currentBehaviour).touchUp(screenX, screenY, pointer, button);
+		return false;
+	}
+
+	@Override
+	public boolean touchDragged(int screenX, int screenY, int pointer) {
+		behaviours.get(currentBehaviour).touchDragged(screenX, screenY, pointer);
+		return false;
+	}
+
+	@Override
+	public boolean mouseMoved(int screenX, int screenY) {
+		behaviours.get(currentBehaviour).mouseMoved(screenX, screenY);
+		return false;
+	}
+
+	@Override
+	public boolean scrolled(int amount) {
+		behaviours.get(currentBehaviour).scrolled(amount);
+		return false;
 	}
 }
